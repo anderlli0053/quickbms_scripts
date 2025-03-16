@@ -1,0 +1,23 @@
+# Simple Wii Series
+
+idstring "JH\0\0"
+get DUMMY long
+get DUMMY long
+get BASE_OFF long
+goto BASE_OFF
+for
+    savepos BASE_OFF
+    idstring "Wpbb"
+    get FILES long
+    for i = 0 < FILES
+        get OFFSET long
+        get SIZE long
+        math OFFSET + BASE_OFF
+        log "" OFFSET SIZE  # Wp16 comperssion NOT supported
+    next i
+    math OFFSET + SIZE
+    goto OFFSET
+    padding 0x800
+    findloc OFFSET binary "Wpbb"
+    goto OFFSET
+next

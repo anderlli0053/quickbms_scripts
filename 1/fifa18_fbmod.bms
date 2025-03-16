@@ -1,0 +1,208 @@
+# FIFA 18 fbmod (script 0.4)
+# script for QuickBMS http://quickbms.aluigi.org
+
+get EXT extension
+if EXT != "fbmod"
+    print "Error: you must select the FBMOD file"
+    cleanexit
+endif
+
+get DUMMY long  # 0x0183dc82
+
+math DATA_FILE = 0
+
+if DUMMY == 0x534f5246
+    goto 0
+    idstring "FROSTY"
+    get VER1 byte   # 0
+    get VER2 byte   # 1
+    get VER3 long   # 1 or 3
+    get INFO_OFF longlong
+    get FILES long
+    get NAMESZ byte
+    getdstring NAME NAMESZ
+    for i = 0 < 6
+        get VAR string
+    next i
+    get ENTRIES long
+    xmath BASE_OFF "INFO_OFF + (FILES * (8 + 8))"
+    for i = 0 < ENTRIES
+        get TYPE byte
+        get ID signed_long
+        if ID >= 0
+            get NAME string
+            getdstring HASH 20
+            get XSIZE longlong
+            get DUMMY byte
+            get ZERO long
+            if VER3 >= 3
+                get ZERO byte
+            endif
+            get SOME_ID long
+            get SOME_CRC long
+            math MAGIC = 0
+            if TYPE == 0
+            elif TYPE == 1
+                get DUMMY long
+            elif TYPE == 2
+                get DUMMY long
+                get MAGIC long
+                get SOME_CRC long
+                get SOME_CRC long
+                get DUMMY long
+                get DUMMY long
+                get DUMMY long
+                get ZERO long
+                get ZERO long
+            elif TYPE == 3
+                get SOME_CRC long
+                get ZERO long
+                get ZERO long
+                get DUMMY long
+                get ZERO long
+                get XSIZE long
+                get MAGIC long
+                get ZERO long
+            else
+                print "Error: unknown type %TYPE%, contact me"
+                cleanexit
+            endif
+
+            if MAGIC == 0x6BDE20BA
+                string NAME + ".f20t"
+            /* not needed, just for PNG
+            else
+                set EXT extension NAME
+                if EXT == ""
+                    string NAME + "."
+                endif
+            */
+            endif
+
+            savepos TMP_OFF
+            goto INFO_OFF
+            for x = 0 <= ID # yeah, it would be more easy to put them in an array
+                get OFFSET longlong
+                get SIZE longlong
+            next x
+            math OFFSET + BASE_OFF
+            if SIZE == XSIZE
+                log NAME OFFSET SIZE
+            else
+                math ZSIZE = SIZE
+                math SIZE  = XSIZE
+                callfunction EXTRACT 1
+                if OUTPUT_SIZE != XSIZE
+                    print "Error: something wrong in the output file, expected size %XSIZE|x%, real size %OUTPUT_SIZE|x%"
+                    cleanexit
+                endif
+            endif
+            goto TMP_OFF
+        endif
+    next i
+    cleanexit
+endif
+
+math DATA_FILE = 1
+math LAST_IDX = -1
+get ARCHIVE_NAME basename
+for
+    set SEARCH binary "name\0"
+    callfunction GET_VAR 1
+    set NAME string VAR
+
+    get NAMESZ byte # it's not a byte
+    getdstring NAME NAMESZ
+
+    set SEARCH binary "archiveIndex\0"
+    callfunction GET_VAR 1
+    math IDX = VAR
+
+    set SEARCH binary "archiveOffset\0"
+    callfunction GET_VAR 1
+    math OFFSET = VAR
+
+    set SEARCH binary "compressedSize\0"
+    callfunction GET_VAR 1
+    math ZSIZE = VAR
+
+    set SEARCH binary "uncompressedSize\0"
+    callfunction GET_VAR 1
+    math SIZE = VAR
+
+    if IDX != LAST_IDX
+        math LAST_IDX = IDX
+        string TMP p "%s %02d.archive" ARCHIVE_NAME IDX
+        open FDSE TMP 1 EXISTS
+        if EXISTS == 0
+        string TMP p "%s_%02d.archive" ARCHIVE_NAME IDX
+        open FDSE TMP 1
+        endif
+    endif
+
+    if ZSIZE == SIZE
+        log NAME OFFSET SIZE DATA_FILE
+    else
+        callfunction EXTRACT 1
+    endif
+next
+
+startfunction EXTRACT
+    # some files have SIZE zero even if they are compressed, let's consider only ZSIZE
+    math OUTPUT_SIZE = 0    # debug
+    xmath LIMIT "OFFSET + ZSIZE"
+    log NAME 0 0
+    append
+    for OFFSET = OFFSET != LIMIT
+        goto OFFSET DATA_FILE
+
+        endian save CURRENT_ENDIAN
+        endian big
+        # check frostbite.bms!
+        get NEED_DICTIONARY byte DATA_FILE
+        get CHUNK_SIZE threebyte DATA_FILE
+        get FLAGS short DATA_FILE
+        get CHUNK_ZSIZE short DATA_FILE
+        savepos CHUNK_OFF DATA_FILE
+        xmath CHUNK_ZSIZE "((FLAGS & 15) << 16) | CHUNK_ZSIZE"
+        math FLAGS >> 8 # remove the 0x70 part
+        if FLAGS != 0
+            if FLAGS == 0xf     # 0xf70
+                comtype zstd
+            elif FLAGS == 0x15  # 0x1570
+                comtype oodle
+            elif FLAGS == 0x11
+                comtype oodle
+            elif FLAGS == 0x9   # 0x970
+                comtype lz4
+            elif FLAGS == 0
+                comtype copy
+            else
+                comtype zlib
+            endif
+            clog NAME CHUNK_OFF CHUNK_ZSIZE CHUNK_SIZE DATA_FILE
+            math OUTPUT_SIZE + CHUNK_SIZE
+        else
+            log NAME CHUNK_OFF CHUNK_ZSIZE DATA_FILE
+            math OUTPUT_SIZE + CHUNK_ZSIZE
+        endif
+        endian set CURRENT_ENDIAN
+
+        goto CHUNK_ZSIZE DATA_FILE SEEK_CUR
+        savepos OFFSET DATA_FILE
+    next
+    append
+endfunction
+
+startfunction GET_VAR
+    findloc TMP binary SEARCH
+    math TMP - 1
+    goto TMP
+    get OPCODE byte
+    get VAR string
+    if OPCODE == 9
+        get VAR longlong
+    elif OPCODE == 8
+        get VAR long
+    endif
+endfunction

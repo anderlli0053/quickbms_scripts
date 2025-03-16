@@ -1,0 +1,22 @@
+# Boomzap
+# script for QuickBMS http://quickbms.aluigi.org
+
+comtype zlib_dynamic
+
+idstring "CRAS"
+get DUMMY long
+get FILES long
+get INFO_OFF long
+get INFO_ZSIZE long
+get INFO_SIZE long
+clog MEMORY_FILE INFO_OFF INFO_ZSIZE INFO_SIZE  # classic zlib
+
+for i = 0 < FILES
+    getdstring NAME 0x100 MEMORY_FILE
+    get OFFSET long MEMORY_FILE
+    get SIZE long MEMORY_FILE
+    get DUMMY long MEMORY_FILE
+    get DUMMY long MEMORY_FILE
+    get DUMMY long MEMORY_FILE
+    clog NAME OFFSET SIZE SIZE
+next i

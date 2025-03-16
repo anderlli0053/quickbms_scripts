@@ -1,0 +1,71 @@
+# ALAR Jump Stars
+#   https://web.archive.org/web/20100111220659/http://jumpstars.wikispaces.com/File+Formats
+
+comtype lz77wii
+getdstring SIGN 4
+
+if SIGN != "ALAR"
+    get NAME basename
+    get EXT extension
+    string NAME + "_unpack."
+    string NAME + EXT
+    savepos OFFSET
+    get SIZE asize
+    math SIZE - OFFSET
+    clog "TEMPORARY_FILE" OFFSET SIZE SIZE
+    open "." "TEMPORARY_FILE"
+else
+    goto 0
+endif
+
+idstring "ALAR"
+get TYPE byte
+get Unknown byte
+if TYPE == 2
+
+    get FILES short
+    getdstring IDS 8
+    savepos TMP
+    for i = 0 < FILES
+        get TYPE long
+        get OFFSET long
+        get SIZE long
+        get Unknown long
+
+        savepos TMP
+        math NAME_OFF = OFFSET
+        math NAME_OFF - 0x22
+        goto NAME_OFF
+        getdstring NAME 0x20
+        goto TMP
+
+        log NAME OFFSET SIZE
+    next i
+
+elif TYPE == 3
+
+    get FILES long
+    get Unknown short
+    get ArrayCount long
+    get EndFileIndex short
+    for i = 0 <= ArrayCount
+        get FileTableIndex short
+    next i
+    for i = 0 < FILES
+        get FileID short
+        get Unknown short
+        get OFFSET long
+        get SIZE long
+        get Unknown short
+        get Unknown short
+        get Unknown short
+        getdstring NAME 18
+        log NAME OFFSET SIZE
+    next i
+
+else
+
+    print "Error: unknown type %TYPE%"
+    cleanexit
+
+endif

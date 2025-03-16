@@ -1,0 +1,80 @@
+# Nancy Drew Ciftree.Dat
+#   The compression algorithm is unknown
+
+idstring "CIF "
+getdstring SIGN 4
+goto 0x18
+get VER1 short # 2
+get VER2 short # 1
+
+if SIGN u== "TREE" # WayneSikes
+
+    #comtype ???
+    get FILES long
+    goto 0x800 0 SEEK_CUR
+    for i = 0 < FILES
+        getdstring NAME 0x21
+        get DUMMY long
+        getdstring ZERO 6
+        get DUMMY long
+        get DUMMY long
+        getdstring ZERO 16
+        get DUMMY long
+        get DUMMY long
+        get OFFSET long
+        get SIZE long
+        get ZERO long
+        get ZSIZE long
+        get DUMMY threebyte
+
+        string NAME p "%s/%s" "compressed" NAME
+        log NAME OFFSET ZSIZE
+
+        #clog NAME OFFSET ZSIZE SIZE
+    next i
+
+elif SIGN u== "FILE"
+
+    goto -4
+    savepos INFO_OFF
+    get SIZE long
+    math INFO_OFF - SIZE
+    goto INFO_OFF
+    get FILES long
+    for i = 0 < FILES
+        getdstring NAME 0x21
+        get OFFSET long
+        putarray 0 i NAME
+        putarray 1 i OFFSET
+    next i
+        putarray 1 i INFO_OFF
+    for i = 0 < FILES
+        getarray NAME   0 i
+        getarray OFFSET 1 i
+        math i + 1
+        getarray SIZE   1 i
+        math SIZE - OFFSET
+
+        string NAME + "."
+
+        goto OFFSET
+        getdstring SIGN 8
+        if SIGN u== "CIF FILE"
+            get STR string
+            get DUMMY long
+            get DUMMY long
+            get DUMMY long
+            get DUMMY long
+            get DUMMY long
+            get SIZE long
+            savepos OFFSET
+            log NAME OFFSET SIZE
+        else
+            log NAME OFFSET SIZE
+        endif
+    next
+
+else
+    print "Error: unknown CIF %SIGN%"
+    cleanexit
+endif

@@ -1,0 +1,59 @@
+# Yomawari: Night Alone
+#   experimental and incomplete compression
+# script for QuickBMS http://quickbms.aluigi.org
+
+get EXT extension
+if EXT == "arc"
+
+    idstring "DSARC FL"
+    get FILES long
+    get ZERO long
+    for i = 0 < FILES
+        getdstring NAME 0x28
+        get SIZE long
+        get OFFSET long
+
+        # the LZS files are compressed with a XOR obfuscation
+        # applied to some opcodes/bytes, the key is the value
+        # at offset 0xc (or is it part of the compressed data?)
+        log NAME OFFSET SIZE
+    next i
+
+elif EXT == "lzs"
+
+    getdstring EXT 4
+    get SIZE long
+    get ZSIZE long
+    savepos OFFSET
+    print "Error: compressed LZS files are currently not supported"
+    cleanexit
+
+elif EXT == "fad"
+
+    get ZERO long
+    get DUMMY long  # ever 1: is it an entry or VER?
+    get FILES long
+    math FILES + DUMMY
+    get ZERO long
+    get ZERO long
+    get ZERO long
+    get OFFSET long
+    get ZERO long
+    for i = 0 < FILES
+        getdstring NAME 8
+        get SIZE long
+        get ZERO long
+        get OFFSET long
+        get ZERO long
+        get ZERO long
+        get ZERO long
+
+        log "" OFFSET SIZE
+    next i
+
+else
+
+    print "Error: extension %EXT% not supported"
+    cleanexit
+
+endif

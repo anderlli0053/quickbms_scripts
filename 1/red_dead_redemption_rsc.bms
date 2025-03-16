@@ -1,0 +1,12 @@
+# Red Dead Redemption RSC
+
+idstring "RSC\x06"
+get DUMMY long
+get DUMMY long
+savepos OFFSET
+get SIZE asize
+math SIZE - OFFSET
+comtype zlib_noerror
+get NAME filename
+string NAME + "_decompress"
+clog NAME OFFSET SIZE SIZE

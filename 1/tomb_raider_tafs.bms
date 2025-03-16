@@ -1,0 +1,20 @@
+# Shadow of the Tomb Raider (tiger)
+
+idstring "TAFS"
+get DUMMY long  # 5
+get DUMMY long  # 1
+get FILES long
+get DUMMY long  # 0xb  
+get DUMMY long  # 0x1a
+getdstring NAME 0x20
+for i = 0 < FILES
+    get DUMMY long
+    get DUMMY long
+    get DUMMY long
+    get DUMMY long
+    get SIZE long
+    get DUMMY long
+    get DUMMY long
+    get OFFSET long
+    log "" OFFSET SIZE
+next i

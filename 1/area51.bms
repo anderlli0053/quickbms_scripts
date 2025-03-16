@@ -1,0 +1,45 @@
+# Area 51 (script 0.1.1)
+# script for QuickBMS http://quickbms.aluigi.org
+
+open FDDE "DFS"
+idstring "SFDX"
+get VER long
+get DUMMY long
+get ALIGN long
+get DUMMY long
+get FILES long
+get DUMMY long
+get NAMES_SIZE long
+get DUMMY long
+get INFO_OFF long
+get DUMMY long
+get NAMES_OFF long
+get ARCHIVE_SIZE long
+log MEMORY_FILE NAMES_OFF NAMES_SIZE
+goto INFO_OFF
+if FILES != 0   # avoid error on boot.000
+
+    set ROOT_PATH string ""
+    #get ROOT_PATH string MEMORY_FILE
+
+    open FDDE "000" 1
+    for i = 0 < FILES
+        get PATH_OFF long
+        get NAME_OFF long
+        get ZERO long
+        get EXT_OFF long
+        get OFFSET long
+        get SIZE long
+
+        goto PATH_OFF MEMORY_FILE
+        get PATH string MEMORY_FILE
+        goto NAME_OFF MEMORY_FILE
+        get NAME string MEMORY_FILE
+        goto EXT_OFF MEMORY_FILE
+        get EXT string MEMORY_FILE
+        string NAME p "%s/%s%s%s" ROOT_PATH PATH NAME EXT
+
+        log NAME OFFSET SIZE 1
+    next i
+
+endif

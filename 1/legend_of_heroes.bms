@@ -1,0 +1,21 @@
+# The Legend of Heroes: Trails of Cold Steel
+# script for QuickBMS http://quickbms.aluigi.org
+
+comtype NISLZS
+get TSTAMP long
+get FILES long
+for i = 0 < FILES
+    getdstring NAME 0x40
+    get SIZE long
+    get ZSIZE long
+    get OFFSET long
+    get ZIP long
+
+    if ZIP == 0
+        log NAME OFFSET SIZE
+    else
+        math OFFSET + 8 # skip the repeated SIZE/ZSIZE
+        math ZSIZE  - 8
+        clog NAME OFFSET ZSIZE SIZE
+    endif
+next i

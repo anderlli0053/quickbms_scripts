@@ -1,0 +1,78 @@
+# Mortal Kombat Shaolin Monks EWDF (script 0.1.4)
+# script for QuickBMS http://quickbms.aluigi.org
+
+get EXT extension
+if EXT == "ewdf"
+
+    comtype deflate
+    idstring "EWDF"
+    get SIZE long
+    get OFFSET long
+    get TSTAMP long
+    get NAME string
+    get ZSIZE asize
+    math ZSIZE - OFFSET
+    clog NAME OFFSET ZSIZE SIZE
+
+elif EXT == "wad"
+
+    comtype deflate
+    idstring "PWF \0"
+    get SOME_SIZE threebyte
+    get DUMMY long
+    get FILES long
+    goto 0x20
+    for i = 0 < FILES
+        get OFFSET threebyte
+        math OFFSET & 0x3fffff  # 0x00400000
+        math OFFSET * 0x800
+        get SIZE long
+        get FLAGS byte
+
+        xmath SIZE "(SIZE & ((1<<20)-1)) * 4"
+
+        if FLAGS & 0x80
+            savepos TMP
+            goto OFFSET
+            # same EWDF code as above but now we know the size (not correct but it's ok)
+            idstring "EWDF"
+            get XSIZE long
+            get HEADER_SIZE long
+            get SOME_CRC long
+            get NAME string
+            math OFFSET + HEADER_SIZE
+            math SIZE   - HEADER_SIZE
+            clog NAME OFFSET SIZE XSIZE
+            goto TMP
+        endif
+    next i
+
+else
+
+    comtype deflate_compress
+    get SIZE asize
+    get NAME filename
+    log MEMORY_FILE 0 0
+    putdstring "EWDF" 4 MEMORY_FILE
+    put SIZE long MEMORY_FILE
+    put 0 long MEMORY_FILE  # placeholder
+    put 0x47ee3b5d long MEMORY_FILE # just an hardcoded timestamp
+    put NAME string MEMORY_FILE
+    savepos OFFSET MEMORY_FILE
+    append
+    encryption crc 0xEDB88320 "32 -1 -1 0 0 1"
+    clog MEMORY_FILE 0 SIZE SIZE
+    encryption "" ""
+    append
+    put QUICKBMS_CRC long MEMORY_FILE
+    put SIZE long MEMORY_FILE
+    padding 0x10 MEMORY_FILE
+    goto 8 MEMORY_FILE
+    put OFFSET long MEMORY_FILE
+
+    get NAME basename
+    string NAME + ".EWDF"
+    get SIZE asize MEMORY_FILE
+    log NAME 0 SIZE MEMORY_FILE
+
+endif

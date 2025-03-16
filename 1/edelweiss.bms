@@ -1,0 +1,31 @@
+# Edelweiss - Astebreed, Ether Vapor, Freesia
+# script for QuickBMS http://quickbms.aluigi.org
+
+comtype gzip
+idstring "TGP0"
+get DUMMY long  # 2
+get FILES long
+get DATA_SIZE long
+savepos BASE_OFF
+xmath BASE_OFF "BASE_OFF + (FILES * (0x60 + 4 + 4 + 4 + 4))"
+#get BASE_OFF asize
+#math BASE_OFF - DATA_SIZE
+for i = 0 < FILES
+    getdstring NAME 0x60
+    get OFFSET long
+    get SIZE long
+    get ZERO long
+    get ZERO long
+    math OFFSET + BASE_OFF
+
+    savepos TMP
+    goto OFFSET
+    get TEST_GZIP threebyte
+    goto TMP
+
+    if TEST_GZIP == 0x088b1f
+        clog NAME OFFSET SIZE SIZE
+    else
+        log NAME OFFSET SIZE
+    endif
+next i

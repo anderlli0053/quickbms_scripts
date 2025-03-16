@@ -1,0 +1,17 @@
+# Ultimate Spider-Man nFlC
+
+comtype lzo1x
+idstring "nFlC"
+get DUMMY long
+get FLAGS long
+get ZERO long
+get DUMMY long
+get DUMMY long
+get SIZE long
+get DUMMY long
+get ZSIZE longlong
+get SIZE longlong
+getdstring ZERO 16
+savepos OFFSET
+get NAME basename
+clog NAME OFFSET ZSIZE SIZE

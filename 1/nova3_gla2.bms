@@ -1,0 +1,52 @@
+# NOVA3 gla2
+
+comtype lz4
+endian big
+
+get MAGIC long
+if MAGIC == 0xd0eea89a
+
+    goto 0 0 SEEK_END
+    savepos TMP_OFF
+    do
+        math TMP_OFF - 24
+        goto TMP_OFF
+
+        get NAME_CRC long
+        get OFFSET long
+        get SIZE long
+        get ZSIZE long
+        get ZERO long
+        get FLAGS long
+
+        if FLAGS & 8
+            clog "" OFFSET ZSIZE SIZE
+        else
+            log "" OFFSET SIZE
+        endif
+    while OFFSET != 0x10
+
+else
+
+    goto 0
+    get DUMMY long
+    get BASE_OFF long
+    get NAMES_OFF long
+    get FILES long
+    for i = 0 < FILES
+        get OFFSET long
+        get SIZE long
+        get NAME_OFF long
+        get ZERO long
+
+        # names are obfuscated so I ignore them
+        math NAME_OFF + NAMES_OFF
+        savepos TMP
+        goto NAME_OFF
+        get NAME string
+        goto TMP
+
+        log "" OFFSET SIZE
+    next i
+
+endif

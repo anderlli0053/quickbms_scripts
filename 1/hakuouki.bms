@@ -1,0 +1,28 @@
+# Hakuoki Shinsengumi Kitan / Way of the Samurai 2
+#   maybe other games developed by Idea Factory
+# script for QuickBMS http://quickbms.aluigi.org
+
+endian big
+idstring "\xfa\xde\xba\xbe"
+get FILES long
+get FILES long
+get DATA_OFF long
+get DATA_SIZE long
+for i = 0 < FILES
+    get NAME_HASH long
+    get OFFSET long
+    get SIZE long
+    get ZERO long
+    get NAME_OFF long
+    get NAMESZ long
+
+    math OFFSET + DATA_OFF
+    math NAME_OFF + DATA_OFF
+
+    savepos TMP
+    goto NAME_OFF
+    getdstring NAME NAMESZ
+    goto TMP
+
+    log NAME OFFSET SIZE
+next i

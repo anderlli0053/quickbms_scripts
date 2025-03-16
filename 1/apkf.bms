@@ -1,0 +1,48 @@
+# APKF
+
+idstring "APKF"
+get DUMMY long
+get ZERO long
+get DUMMY long
+get DUMMY long
+savepos TMP
+get OFFSET long
+math OFFSET + TMP
+get ZERO long
+math MAX_TYPES = 4
+for TYPE = 0 < MAX_TYPES
+    getdstring PATH 4
+    get DUMMY long
+    get STRUCT_TYPE long
+    savepos TMP
+    get INFO_OFF long
+    math INFO_OFF + TMP
+    get FILES long
+    get DUMMY5 long
+    get FLAGS long
+
+    savepos BACKUP_OFF
+    goto INFO_OFF
+    for i = 0 < FILES
+        savepos TMP
+        get NAME_OFF long
+        math NAME_OFF + TMP
+        get CRC long
+        get SIZE long
+        if STRUCT_TYPE == 1
+        elif STRUCT_TYPE == 2
+            get DUMMY long
+        else
+            print "Error: unknown structure %STRUCT_TYPE%, contact me"
+            cleanexit
+        endif
+        savepos TMP
+        goto NAME_OFF
+        get NAME string
+        goto TMP
+        string NAME p "%s/%s" PATH NAME
+        log NAME OFFSET SIZE
+        math OFFSET + SIZE
+    next i
+    goto BACKUP_OFF
+next TYPE

@@ -1,0 +1,48 @@
+# Double Dragon Neon
+# script for QuickBMS http://quickbms.aluigi.org
+
+get EXT extension
+if EXT == "ltb"
+
+    # I don't think this data must be extracted... this is just a sort of documentation
+    get FILES long
+    for i = 0 < FILES
+        idstring "ZLFW"
+        get SIZE long
+        get DUMMY long
+        get SUBS long           # ???
+        get HEADER_SIZE long    # ???
+        get DUMMY long
+        get DUMMY long
+        get DUMMY long
+        savepos OFFSET
+        math SIZE - 0x10
+        log "" OFFSET SIZE
+        math OFFSET + SIZE
+        goto OFFSET
+    next i
+
+else    # "pak"
+
+    get BASE_OFF long
+
+    savepos TMP
+    goto BASE_OFF
+    getdstring TEST 0x40
+    if TEST & "MANAGEDFILE_DATABLOCK"
+        savepos BASE_OFF
+    endif
+    goto TMP
+
+    get FILES long
+    for i = 0 < FILES
+        idstring "FILELINK"
+        get OFFSET long
+        get SIZE long
+        get NAME string
+        padding 4
+        math OFFSET + BASE_OFF
+        log NAME OFFSET SIZE
+    next i
+
+endif

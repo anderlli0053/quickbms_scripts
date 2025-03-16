@@ -1,0 +1,63 @@
+# Endless Ocean: Blue World
+# script for QuickBMS http://quickbms.aluigi.org
+
+math AUTO_PARSING_RF2 = 1
+
+open FDSE "INFO.DAT"
+open FDSE "GAME.DAT" 1
+
+idstring "\x00ARK"  # ARK_CRV005_DATA
+goto 0x24
+get ALIGN long
+get ZERO long
+get FILES long
+for i = 0 < FILES
+    getdstring NAME 0x20
+    get ZSIZE long
+    get OFFSET long
+    get DUMMY long
+    get SIZE long
+    math OFFSET * ALIGN
+    if ZSIZE == SIZE
+        if AUTO_PARSING_RF2 == 0
+            log NAME OFFSET SIZE 1
+        else
+            # automatic handling of "RF2" files and sub_files
+            set PATH string ""
+            callfunction EXTRACT_RF2    # don't use 1
+        endif
+    else
+        clog NAME OFFSET ZSIZE SIZE 1
+    endif
+next i
+
+startfunction EXTRACT_RF2
+    savepos TMP 1
+    goto OFFSET 1
+    getdstring SIGN 3 1
+    if SIGN == "RF2"
+        math BASE_OFF = OFFSET
+        getdstring TYPE 3 1
+        string PATH + NAME
+        string PATH + /
+        get VER short 1
+        get INFO_SIZE threebyte 1
+        get DUMMY byte 1
+        get HEAD_SIZE long 1
+        xmath SUB_FILES "INFO_SIZE / 0x20"
+        for x = 0 < SUB_FILES
+            getdstring NAME 0x14 1
+            get SIZE long 1
+            get OFFSET long 1
+            get FLAGS long 1
+            math OFFSET + BASE_OFF
+            if SIZE != 0
+                callfunction EXTRACT_RF2
+            endif
+        next x
+    else
+        string FNAME p "%s/%s" PATH NAME
+        log FNAME OFFSET SIZE 1
+    endif
+    goto TMP 1
+endfunction

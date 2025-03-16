@@ -1,0 +1,63 @@
+# HOGG archives
+#   Neverwinter Online, Star Trek Online
+# script for QuickBMS http://quickbms.aluigi.org
+
+comtype unzip_dynamic
+idstring "\x0d\xf0\xad\xde"
+get FLAGS long
+get INFO_SIZE long
+get INFO2_SIZE long
+get DUMMY long
+get DUMMY long
+savepos BASE_OFF
+
+goto 0x400
+getdstring DUMMY BASE_OFF
+get ZERO long
+get NAMES_SIZE long
+get NAMES_SIZE long
+savepos TMP
+xmath NAMES_LIMIT "TMP + NAMES_SIZE"
+math i = 0
+for TMP = TMP < NAMES_LIMIT
+    get DUMMY byte
+    get ID long
+    get NAMESZ long
+    getdstring NAME NAMESZ
+    savepos TMP
+    putarray 0 ID NAME
+next i
+
+padding 0x10000
+getdstring DUMMY BASE_OFF
+savepos TMP
+xmath INFO_LIMIT "TMP + INFO_SIZE"
+math i = 0
+for TMP = TMP < INFO_LIMIT
+    get OFFSET longlong
+    get SIZE long
+    get DUMMY1 long
+    get DUMMY2 long
+    get ZERO long
+    get TYPE long
+    get ID long
+    savepos TMP
+
+    if TYPE != 0
+    if TYPE != 0xffffffff
+        if i == 0
+            clog MEMORY_FILE OFFSET SIZE SIZE
+            get ZERO long MEMORY_FILE
+            get NAMES long MEMORY_FILE
+            for j = 0 < NAMES
+                get NAMESZ long MEMORY_FILE
+                getdstring NAME NAMESZ MEMORY_FILE
+                putarray 0 j NAME
+            next j
+        else
+            getarray NAME 0 ID
+            clog NAME OFFSET SIZE SIZE
+        endif
+    endif
+    endif
+next i

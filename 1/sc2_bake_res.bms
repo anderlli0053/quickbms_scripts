@@ -1,0 +1,58 @@
+# Sport Championship 2 BAKE/RES! (script 0.1.1)
+
+comtype deflate
+endian big
+idstring "BAKE"
+getdstring PLATFORM 4
+get VER long    # 5
+get FILES long
+get DATA_OFF long
+get CHUNKS long
+get INFO_OFF long
+savepos BASE_OFF
+
+if DATA_OFF == INFO_OFF
+    # this is probably wrong but I have no idea how it gets this value
+    # it's correct in one sample and different in another
+    math DATA_OFF + INFO_OFF
+endif
+
+math CHUNK_SIZE = 0x10000
+math INFO_OFF + BASE_OFF
+if DATA_OFF == 0
+    xmath DATA_OFF "INFO_OFF + (CHUNKS * (4 + 4))"
+endif
+goto INFO_OFF
+
+xmath TMP "CHUNKS * CHUNK_SIZE"
+putvarchr MEMORY_FILE TMP 0
+log MEMORY_FILE 0 0
+append
+for i = 0 < CHUNKS
+    get OFFSET long
+    get SIZE long
+    #if SIZE == 0 || SIZE >= CHUNK_SIZE ???
+    math OFFSET * 0x10
+    math OFFSET + DATA_OFF
+    clog MEMORY_FILE OFFSET SIZE CHUNK_SIZE
+next i
+append
+
+get SIZE asize MEMORY_FILE
+get NAME basename
+log NAME 0 SIZE MEMORY_FILE
+
+/*
+# the format of some archives like baked_avatars.data is completely different
+goto BASE_OFF
+for i = 0 < FILES
+    get SOME_CRC long
+    get SIZE long
+    get DUMMY long
+    get OFFSET long
+    get DUMMY long
+    math OFFSET * 0x10
+    log "" OFFSET SIZE MEMORY_FILE
+next i
+print "For the RES files use http://aluigi.org/bms/sport_championship_res.bms"
+*/

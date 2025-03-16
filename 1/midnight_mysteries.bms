@@ -1,0 +1,66 @@
+# Midnight Mysteries (script 0.2.1)
+#   Salem Witch Trials, Samantha Swift, Fountains of Fate, Ghostwriter
+# script for QuickBMS http://quickbms.aluigi.org
+
+comtype deflate_noerror # there is no decompressed size
+get SIGN long
+if SIGN == 0xeceddece
+
+    get VERSION long
+    get OFFSET long
+    goto OFFSET
+    get FILES long
+    savepos OFFSET
+    math NAME_OFF = FILES
+    math NAME_OFF *= 0x10
+    math NAME_OFF += OFFSET
+    goto NAME_OFF
+    get SIZE long
+    savepos NAME_OFF
+    log MEMORY_FILE NAME_OFF SIZE
+    goto OFFSET
+    set PATH string ""
+    for i = 0 < FILES
+        get TYPE long
+        get OFFSET long
+        get SIZE long
+        get NAME_OFF long
+        goto NAME_OFF MEMORY_FILE
+        get NAME string MEMORY_FILE
+        if TYPE == 0
+            set FNAME string PATH
+            string FNAME += NAME
+            log FNAME OFFSET SIZE
+        else
+            set PATH string NAME
+        endif
+    next i
+
+else
+
+    get DUMMY long
+    get VERSION long  # 6
+    get INFO_OFF long
+    goto INFO_OFF
+    get FILES long
+    for i = 0 < FILES
+        get NAMESZ byte
+        getdstring NAME NAMESZ
+        get DUMMY long
+        get DUMMY long
+        get OFFSET long
+        get ZSIZE long
+        get SIZE long
+        get ZIP long
+        if ZIP == 0
+            if ZSIZE == SIZE
+                log NAME OFFSET SIZE
+            else
+                clog NAME OFFSET ZSIZE SIZE # ???
+            endif
+        else
+            clog NAME OFFSET SIZE SIZE
+        endif
+    next i
+
+endif

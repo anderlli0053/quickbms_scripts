@@ -1,0 +1,20 @@
+# Kiniro no Corda
+# script for QuickBMS http://quickbms.aluigi.org
+
+idstring "CDAR"
+get VER long
+get FILES long
+get DUMMY long
+for i = 0 < FILES
+    get NAME_CRC long
+next i
+for i = 0 < FILES
+    get OFFSET long
+    get SIZE long
+    get ZSIZE long
+    if ZSIZE == SIZE
+        log "" OFFSET SIZE
+    else
+        clog "" OFFSET ZSIZE SIZE
+    endif
+next i

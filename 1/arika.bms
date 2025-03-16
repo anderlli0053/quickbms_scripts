@@ -1,0 +1,179 @@
+# Arika games INFO.DAT / GAME.DAT
+#   3D Classics Kirby's Adventure
+#   Tekken 3D (3DS)
+#   Endless Ocean: Blue World
+#   Dr. Mario Online Rx
+#   Dr. Luigi (Wii U)
+#   Dr. Mario Express
+# experimental script that works only with some formats
+# script for QuickBMS http://quickbms.aluigi.org
+
+math DECRYPT_INFO_ONLY = 0
+math DO_SCANNER = 0
+math WORKAROUND = 1
+
+open FDSE "INFO.DAT"
+get INFO_DAT_SIZE asize
+get ENCRYPTED byte
+goto 0
+# in quickbms filexor is the first operation so I have to rotate also the key
+set KEY string ""
+for i = 0 < 16
+    get TMP byte
+    math TMP z 4
+    math TMP ^ 0xff
+    string KEY + TMP
+    string KEY + " "
+next i
+if ENCRYPTED != 0
+    encryption rotate 4
+    filexor KEY
+endif
+
+if DECRYPT_INFO_ONLY != 0
+    get NAME filename
+    string NAME + ".decrypted"
+    savepos OFFSET
+    get SIZE asize
+    math SIZE - OFFSET
+    log NAME OFFSET SIZE
+    cleanexit
+endif
+
+filecrypt 1
+do
+    get TMP long
+while TMP == 0
+goto -4 0 SEEK_CUR
+
+get ALIGN long
+endian guess ALIGN
+get VER long
+get FILES long
+math NAMESZ = 0x20
+if VER <= 1
+    for i = 0 < FILES
+        getdstring NAME NAMESZ
+        get ZSIZE long
+        get OFFSET long
+        get BLOCKS long
+        get SIZE long
+
+        # SIZE and the byte at position 0 and 0x10 of the NAME have an additional xor that varies, like 0x40, 0xc0, 0xd0 and so on
+        # without this information is not possible to have a correct extraction
+        # but we know the OFFSET and the SIZE so we can calculate ZSIZE and using this work-around to perform the extraction :D
+
+        callfunction ADD_TO_ARRAY 1
+    next i
+else
+
+    print "Alert: unsupported format. I will use the ZALZ scanner but many files (like images) will be skipped!"
+    math DO_SCANNER = 1
+
+    if VER >= 0xf
+        math NAMESZ = 0x30
+    endif
+    get DUMMY long  # no, they are not folders or at least not in sequential order: 0x37 against 0x1f
+    for i = 0
+        savepos TMP
+        if TMP == INFO_DAT_SIZE
+            break
+        endif
+        getdstring NAME NAMESZ
+        get ZSIZE long  # ???
+        get DUMMY long  # ???
+        get DUMMY long  # ???
+        get SIZE long   # ???
+        if SIZE u< 0x01010101
+            set NAME string ""  # unknown obfuscation
+            callfunction ADD_TO_ARRAY 1
+        endif
+    next i
+    math FILES = i
+endif
+encryption "" ""
+filecrypt ""
+filexor ""
+
+open FDSE "GAME.DAT"
+
+if DO_SCANNER != 0
+    callfunction ZALZ_SCANNER 1
+    cleanexit
+endif
+
+get OFFSET asize
+putarray 1 FILES OFFSET
+print "sorting arrays... please wait"
+sortarray 1 1
+
+for i = 0 < FILES
+    getarray NAME   0 i
+    getarray OFFSET 1 i
+    getarray ZSIZE  2 i
+    getarray SIZE   3 i
+    math i + 1
+
+    if WORKAROUND != 0
+        #set NAME string ""
+        getarray ZSIZE  1 i
+        math ZSIZE - OFFSET
+    endif
+
+    if SIZE != 0
+        if SIZE == ZSIZE    # keep >= for the work-around!
+            log NAME OFFSET SIZE
+        else
+            goto OFFSET
+            getdstring SIGN 4
+            if SIGN u== "ZALZ"
+                comtype lzss0
+                #get XSIZE long # who cares...
+                math OFFSET + 8
+                math ZSIZE  - 8
+            elif SIGN u== "ALZ1"
+                comtype lzss0
+                math OFFSET + 4
+                math ZSIZE  - 4
+            else
+                if SIZE <= ZSIZE
+                    comtype copy
+                    math ZSIZE = SIZE
+                else
+                    print "Error: unknown magic %SIGN% at offset %OFFSET|x%, contact me!"
+                    cleanexit
+                endif
+            endif
+            clog NAME OFFSET ZSIZE SIZE
+        endif
+    endif
+next
+
+startfunction ADD_TO_ARRAY
+    # NAME is unreliable, often there is a modification every 0x10 bytes like 0xa1->0x61 or 0xbc->0x6c
+    math OFFSET * ALIGN
+    putarray 0 i NAME
+    putarray 1 i OFFSET
+    putarray 2 i ZSIZE
+    putarray 3 i SIZE
+endfunction
+
+startfunction ZALZ_SCANNER
+    comtype lzss0
+    endian big
+    get DAT_SIZE asize
+        findloc OFFSET binary "ZALZ"
+    for OFFSET = OFFSET != DAT_SIZE
+        goto OFFSET
+        idstring "ZALZ"
+        get SIZE long
+        savepos OFFSET
+        findloc NEXT_OFF binary "ZALZ" 0 ""
+        if NEXT_OFF == ""
+            math NEXT_OFF = DAT_SIZE
+        endif
+        xmath ZSIZE "NEXT_OFF - OFFSET"
+        clog "" OFFSET ZSIZE SIZE
+        math OFFSET = NEXT_OFF
+    next
+endfunction

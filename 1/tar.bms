@@ -1,0 +1,78 @@
+# TAR (script 0.1.1)
+# script for QuickBMS http://quickbms.aluigi.org
+
+get TAR_SIZE asize
+math IS_COMPRESSED = 1
+get EXT extension
+# max 3 "if" inline
+if EXT & "gz"
+    comtype gzip
+elif EXT & "bz" || EXT & "b2"
+    comtype bzip2_file
+elif EXT == "taz" || EXT == "tz" || EXT == "z"
+    comtype compress
+elif EXT & "lz" || EXT & "xz"
+    comtype lzma_dynamic
+else
+    get CHECK short
+    if CHECK == 0x8b1f
+        comtype gzip
+    else
+        math IS_COMPRESSED = 0
+    endif
+endif
+if IS_COMPRESSED == 0
+    log MEMORY_FILE 0 TAR_SIZE
+else
+    clog MEMORY_FILE 0 TAR_SIZE TAR_SIZE
+endif
+
+get TAR_SIZE asize MEMORY_FILE
+for OFFSET = 0 != TAR_SIZE
+    getdstring NAME 100 MEMORY_FILE
+    getdstring MODE 8 MEMORY_FILE
+    getdstring OWNER_ID 8 MEMORY_FILE
+    getdstring GROUP_ID 8 MEMORY_FILE
+    getdstring SIZE 12 MEMORY_FILE
+    getdstring TSTAMP 12 MEMORY_FILE
+    getdstring CHECKSUM 8 MEMORY_FILE
+    getdstring LINK 1 MEMORY_FILE
+    getdstring LINKED_NAME 99 MEMORY_FILE
+
+    getdstring MAGIC 6 MEMORY_FILE
+    if MAGIC == "ustar"
+        getdstring USTAR_VERSION 2 MEMORY_FILE
+        getdstring OWNER_USER_NAME 32 MEMORY_FILE
+        getdstring OWNER_GROUP_NAME 32 MEMORY_FILE
+        getdstring DEVICE_MAJ 8 MEMORY_FILE
+        getdstring DEVICE_MIN 8 MEMORY_FILE
+        getdstring FILENAME 155 MEMORY_FILE
+        string NAME p "%s%s" FILENAME NAME
+    endif
+
+    padding 512 MEMORY_FILE
+    savepos OFFSET MEMORY_FILE
+
+    math VAR = SIZE
+    callfunction DO_OCTAL 1
+    math SIZE = NUM
+
+    if NAME != ""
+        log NAME OFFSET SIZE MEMORY_FILE
+    endif
+
+    math OFFSET + SIZE
+    math OFFSET x 512
+    goto OFFSET MEMORY_FILE
+next
+
+startfunction DO_OCTAL
+    math NUM = 0
+    strlen VARSZ VAR
+    for j = 0 < VARSZ
+        getvarchr T VAR j
+        math T -= '0'
+        math NUM *= 8
+        math NUM += T
+    next j
+endfunction
